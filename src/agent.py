@@ -97,16 +97,20 @@ def analyze_sensor_data(sensor_dict: dict) -> dict:
     )
     overstrain = sensor_dict["Tool wear [min]"] * sensor_dict["Torque [Nm]"]
 
-    if temp_diff < 8.6 and sensor_dict["Rotational speed [rpm]"] < 1380:
+    # 1. Сначала проверяем предельный износ инструмента (если > 200 мин — это точно TWF)
+    if sensor_dict["Tool wear [min]"] >= 200:
+        fault_type = "TWF"
+    # 2. Проверяем отказ охлаждения / перегрев
+    elif temp_diff < 8.6 and sensor_dict["Rotational speed [rpm]"] < 1380:
         fault_type = "HDF"
+    # 3. Проверяем мощность привода
     elif power < 3500 or power > 9000:
         fault_type = "PWF"
+    # 4. Проверяем механическое перенапряжение
     elif overstrain > 11000:
         fault_type = "OSF"
-    elif sensor_dict["Tool wear [min]"] >= 200:
-        fault_type = "TWF"
     else:
-        fault_type = "HDF"
+        fault_type = "TWF"
 
     reg_text = regulations.get(fault_type, "Действовать по общей инструкции цеха.")
 
